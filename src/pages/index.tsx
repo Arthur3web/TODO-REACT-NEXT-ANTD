@@ -7,6 +7,7 @@ import {
   Button,
   Dropdown,
   Flex,
+  Input,
   Layout,
   Menu,
   MenuProps,
@@ -26,24 +27,12 @@ import {
   UserOutlined,
 } from "@ant-design/icons";
 import { useState } from "react";
+import AddTaskForm, { Task } from "@/components/AddTaskForm";
+import CustomTable from "@/components/CustomTable/CustomTable";
 
 const inter = Inter({ subsets: ["latin"] });
 
 type MenuItem = Required<MenuProps>["items"][number];
-
-function getItem(
-  label: React.ReactNode,
-  key: React.Key,
-  icon?: React.ReactNode,
-  children?: MenuItem[]
-): MenuItem {
-  return {
-    key,
-    icon,
-    label,
-    children,
-  } as MenuItem;
-}
 
 const statusList = ["All", "Done", "Undone"];
 const menu = (
@@ -69,13 +58,21 @@ const items: MenuProps["items"] = [
   },
   {
     label: (
-      <Dropdown overlay={menu} placement="bottomLeft" trigger={['click']} overlayStyle={{width: 185}}>
+      <Dropdown
+        overlay={menu}
+        placement="bottom"
+        trigger={["click"]}
+        overlayStyle={{ width: 185, marginLeft: "-30px", marginTop: "40px" }}
+      >
         <a className="ant-dropdown-link" onClick={(e) => e.preventDefault()}>
-          <CheckCircleOutlined style={{ fontSize: "20px", marginRight: "10px" }} /> All
+          All
         </a>
       </Dropdown>
     ),
     key: 2,
+    icon: (
+      <CheckCircleOutlined style={{ fontSize: "20px", marginRight: "10px" }} />
+    ),
   },
   {
     label: "Date",
@@ -89,52 +86,12 @@ const items: MenuProps["items"] = [
   },
 ];
 
-// const allSubMenuItems: MenuProps["items"] = statusList.map((el, index) => {
-//   return getItem(
-//     el,
-//     index + 1,
-//     <CheckCircleOutlined style={{ fontSize: "20px", marginRight: "10px" }} />
-//   );
-// });
-
-// const items: MenuProps["items"] = [
-//   getItem(
-//     "Today",
-//     1,
-//     <ScheduleOutlined style={{ fontSize: "20px", marginRight: "10px" }} />
-//   ),
-//   getItem(
-//     "All",
-//     2,
-//     <CheckCircleOutlined style={{ fontSize: "20px", marginRight: "10px" }} />,
-//     allSubMenuItems // Добавляем элементы подменю "All"
-//   ),
-//   getItem(
-//     "Date",
-//     3,
-//     <>
-//       <ArrowDownOutlined style={{ fontSize: "10px" }} />
-//       <ArrowUpOutlined style={{ fontSize: "10px", margin: 0 }} />
-//     </>
-//   ),
-// ];
-
-interface DataTypes {
-  key: React.Key;
-  content: string;
-  timeend: Date;
-}
-
-const columns: TableProps<DataTypes>["columns"] = [
-  {
-    title: "Task content",
-    dataIndex: "taskcontent",
-  },
-  {
-    title: "Time end",
-    dataIndex: "timeend",
-  },
-];
+const mapTasksToTableDate = (tasks: Task[]) => {
+  return tasks.map((task) => ({
+    ...task,
+    key: task.id,
+  }));
+};
 
 const justifyOptions = [
   "flex-start",
@@ -145,124 +102,196 @@ const justifyOptions = [
   "space-evenly",
 ];
 
-const content = <Button>Выйти</Button>;
-
 const alignOptions = ["flex-start", "center", "flex-end"];
 
 export default function Home() {
+  const [tasklist, setTasklist] = useState<Task[]>([]);
+  const [isClickAddTaskButton, setClickAddTaskButton] = useState(false);
+
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [loading, setLoading] = useState(false);
+
+
+  const start = () => {
+    setLoading(true);
+    setTimeout(() => {
+      setSelectedRowKeys([]);
+      setLoading(false);
+    }, 1000);
+  };
+
+  const onSelectChange = (newSelectedRowKeys: React.Key[]) => {
+    console.log("selectedRowKeys changed: ", newSelectedRowKeys);
+    setSelectedRowKeys(newSelectedRowKeys);
+  };
+
+  const rowSelection = {
+    selectedRowKeys,
+    onChange: onSelectChange,
+  };
+  const hasSelected = selectedRowKeys.length > 0;
+
+  const handleAddTask = (task: Task) => {
+    setTasklist([
+      ...tasklist,
+      {
+        id: new Date().toISOString(),
+        // title,
+        ...task,
+        completed: false,
+        timestart: Date.now(),
+        // timeend,
+      },
+    ]);
+    setClickAddTaskButton(false);
+  };
+
+  const content = <Button style={{ width: 150, height: 40 }}>Exit</Button>;
   return (
-    <main>
-      <Layout
-        style={{
-          padding: "0% 7% 0 5%",
-          width: "100vw",
-          height: "100vh",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <Flex
-          align="center"
-          justify="space-between"
-          style={{ width: 1366, height: 1024 }}
+    <>
+      <main>
+        <Layout
+          style={{
+            padding: "0% 7% 0 5%",
+            width: "100vw",
+            height: "100vh",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            background: "linear-gradient(300deg, #B9D5FF 0%, #F6D1FC 98.93%)",
+          }}
         >
-          <Typography
-            style={{
-              fontSize: "96px",
-              fontFamily: "Roboto",
-              fontWeight: "700",
-              color: "#404040",
-            }}
+          <Flex
+            align="center"
+            justify="space-between"
+            style={{ width: 1366, height: 1024 }}
           >
-            TODO <span style={{ color: "#9333ea" }}>UI</span>
-          </Typography>
-          <Flex>
-            <Layout>
-              <Layout.Header
-                style={{
-                  background: "white",
-                  height: 47,
-                  padding: "16px 20px 16px 20px",
-                  width: 672,
-                  borderRadius: 10,
-                }}
-              >
-                <Flex align="center" justify="space-between">
-                  <Typography>To-Do</Typography>
-                  <Typography>Username</Typography>
-                  <Popover
-                    content={content}
-                    title="Welcome, user!"
-                    trigger="click"
-                    placement="bottomRight"
-                  >
-                    <Badge dot>
-                      <Avatar
-                        size={20}
-                        shape="square"
-                        icon={<UserOutlined />}
-                      />
-                    </Badge>
-                  </Popover>
-                </Flex>
-              </Layout.Header>
-              <Layout.Content
-                style={{
-                  paddingTop: "48px",
-                  width: 672,
-                  borderRadius: 10,
-                }}
-              >
-                <Flex>
-                  <Flex
-                    vertical
-                    style={{
-                      background: "white",
-                      marginRight: 30,
-                      borderRadius: 10,
-                    }}
-                  >
-                    <Menu
+            <Typography
+              style={{
+                fontSize: "96px",
+                fontFamily: "Roboto",
+                fontWeight: "700",
+                color: "#404040",
+              }}
+            >
+              TODO <span style={{ color: "#9333ea" }}>UI</span>
+            </Typography>
+            <Flex>
+              <Layout style={{ borderRadius: 10, background: "transparent" }}>
+                <Layout.Header
+                  style={{
+                    background: "white",
+                    height: 47,
+                    padding: "16px 20px 16px 20px",
+                    width: 672,
+                    borderRadius: 10,
+                  }}
+                >
+                  <Flex align="center" justify="space-between">
+                    <Typography style={{ color: "#9333ea" }}>To-Do</Typography>
+                    <Typography style={{ color: "#9333ea" }}>
+                      Username
+                    </Typography>
+                    <Popover
+                      content={content}
+                      title="Welcome, user!"
+                      trigger="click"
+                      placement="bottomRight"
+                    >
+                      <Badge dot>
+                        <Avatar
+                          size={20}
+                          shape="square"
+                          icon={<UserOutlined />}
+                        />
+                      </Badge>
+                    </Popover>
+                  </Flex>
+                </Layout.Header>
+                <Layout.Content
+                  style={{
+                    paddingTop: "48px",
+                    width: 672,
+                    borderRadius: 10,
+                  }}
+                >
+                  <Flex>
+                    <Flex
+                      vertical
                       style={{
-                        width: 185,
-                        // marginRight: 30,
+                        background: "transparent",
+                        marginRight: 30,
                         borderRadius: 10,
                       }}
-                      mode="inline"
-                      items={items}
-                    />
-                    <Button
-                      icon={
-                        <PlusOutlined
-                          style={{ fontSize: "20px", marginRight: "10px" }}
-                        />
-                      }
-                      style={{ width: 185, marginTop: "auto" }}
                     >
-                      Add Task
-                    </Button>
-                  </Flex>
+                      <Menu
+                        style={{
+                          // width: 185,
+                          borderRadius: 10,
+                          background: "transparent",
+                          border: 0,
+                        }}
+                        // mode="inline"
+                        items={items}
+                      />
+                      <Button
+                        icon={
+                          <PlusOutlined
+                            style={{ fontSize: "20px", marginRight: "10px" }}
+                          />
+                        }
+                        style={{
+                          width: 185,
+                          marginTop: "auto",
+                          height: 40,
+                          borderRadius: 10,
+                          background: "transparent",
+                          border: "1px solid gray",
+                        }}
+                        onClick={() => setClickAddTaskButton(true)}
+                      >
+                        Add Task
+                      </Button>
+                    </Flex>
 
-                  <Layout
-                    style={{
-                      // width: 457,
-                      height: 312,
-                      borderRadius: 10,
-                      padding: "31px 17px 21px 21px",
-                      background: "white",
-                    }}
-                  >
-                    {/* <Table
-                    columns={columns}
-                    /> */}
-                  </Layout>
-                </Flex>
-              </Layout.Content>
-            </Layout>
+                    <Layout
+                      style={{
+                        // width: 457,
+                        height: 320,
+                        borderRadius: 10,
+                        padding: "31px 17px 21px 21px",
+                        background: "white",
+                      }}
+                    >
+                      <CustomTable/>
+                        <div>
+                          <Button
+                            type="primary"
+                            onClick={start}
+                            disabled={!hasSelected}
+                            loading={loading}
+                          >
+                            Completed
+                          </Button>
+                          <span style={{ marginLeft: 8 }}>
+                            {hasSelected
+                              ? `Selected ${selectedRowKeys.length} items`
+                              : ""}
+                          </span>
+                        </div>
+                    </Layout>
+                  </Flex>
+                </Layout.Content>
+              </Layout>
+            </Flex>
           </Flex>
-        </Flex>
-      </Layout>
-    </main>
+        </Layout>
+      </main>
+      <AddTaskForm
+        visible={isClickAddTaskButton}
+        onCancel={() => setClickAddTaskButton(false)}
+        onSubmit={handleAddTask}
+      />
+    </>
   );
 }
